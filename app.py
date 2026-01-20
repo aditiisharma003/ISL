@@ -1,10 +1,10 @@
 import pickle
 import cv2
-import mediapipe as mp
 import numpy as np
 from flask import Flask, render_template, request, jsonify
 import base64
 import os
+import traceback
 
 app = Flask(__name__)
 
@@ -18,10 +18,19 @@ except FileNotFoundError:
     print("⚠️ Warning: model.p not found. Predictions will not work.")
 except Exception as e:
     print(f"❌ Error loading model: {e}")
+    traceback.print_exc()
 
 # Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.5)
+mp_hands = None
+hands = None
+try:
+    import mediapipe as mp
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.5)
+    print("✅ MediaPipe Hands initialized successfully!")
+except Exception as e:
+    print(f"❌ Error initializing MediaPipe: {e}")
+    traceback.print_exc()
 
 # Define labels (A-Z and 0-9)
 labels_dict = {str(i): str(i) for i in range(10)} 
@@ -32,14 +41,21 @@ two_handed_gestures = {'A','B','D','E','F','G','H','J','K','M','N','P','Q','R','
 
 def process_frame(image_data):
     """Process a single frame and return prediction"""
+    if hands is None:
+        return {"error": "MediaPipe not initialized", "prediction": "?", "hands_detected": 0}
+    
     try:
         # Decode base64 image
-        img_bytes = base64.b64decode(image_data.split(',')[1])
+        if ',' in image_data:
+            img_bytes = base64.b64decode(image_data.split(',')[1])
+        else:
+            img_bytes = base64.b64decode(image_data)
+            
         nparr = np.frombuffer(img_bytes, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if frame is None:
-            return {"error": "Failed to decode image"}
+            return {"error": "Failed to decode image", "prediction": "?", "hands_detected": 0}
         
         H, W, _ = frame.shape
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -72,52 +88,97 @@ def process_frame(image_data):
             data_aux = data_aux[:84]
         
         # Make prediction
+        predicted_character = "?"
         if model and len(data_aux) == 84:
-            prediction = model.predict([np.asarray(data_aux)])
-            predicted_character = labels_dict.get(prediction[0], "?")
-            
-            # Check for two-handed gestures
-            if predicted_character in two_handed_gestures and hand_count < 2:
+            try:
+                prediction = model.predict([np.asarray(data_aux)])
+                predicted_character = labels_dict.get(prediction[0], "?")
+                
+                # Check for two-handed gestures
+                if predicted_character in two_handed_gestures and hand_count < 2:
+                    predicted_character = "?"
+            except Exception as pred_error:
+                print(f"Prediction error: {pred_error}")
                 predicted_character = "?"
-        else:
-            predicted_character = "?" if not model else "No hands"
         
         return {
             "prediction": predicted_character,
-            "hands_detected": hand_count
+            "hands_detected": hand_count,
+            "status": "success"
         }
     
     except Exception as e:
         print(f"Processing error: {e}")
-        return {"error": str(e)}
+        traceback.print_exc()
+        return {
+            "error": str(e),
+            "prediction": "?",
+            "hands_detected": 0
+        }
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        print(f"Error rendering index: {e}")
+        traceback.print_exc()
+        return f"Error: {str(e)}", 500
 
 @app.route('/camera')
 def camera():
-    return render_template('camera.html')
+    try:
+        return render_template('camera.html')
+    except Exception as e:
+        print(f"Error rendering camera: {e}")
+        traceback.print_exc()
+        return f"Error: {str(e)}", 500
 
 @app.route('/predict', methods=['POST'])
 def predict():
     """API endpoint for prediction from base64 image"""
-    data = request.get_json()
+    try:
+        data = request.get_json()
+        
+        if not data or 'image' not in data:
+            return jsonify({
+                "error": "No image data provided",
+                "prediction": "?",
+                "hands_detected": 0
+            }), 400
+        
+        result = process_frame(data['image'])
+        return jsonify(result)
     
-    if not data or 'image' not in data:
-        return jsonify({"error": "No image data provided"}), 400
-    
-    result = process_frame(data['image'])
-    return jsonify(result)
+    except Exception as e:
+        print(f"Predict endpoint error: {e}")
+        traceback.print_exc()
+        return jsonify({
+            "error": str(e),
+            "prediction": "?",
+            "hands_detected": 0
+        }), 500
 
 @app.route('/health')
 def health():
     """Health check endpoint"""
     return jsonify({
         "status": "healthy",
-        "model_loaded": model is not None
+        "model_loaded": model is not None,
+        "mediapipe_loaded": hands is not None
     })
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "Not found"}), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    print(f"Internal error: {e}")
+    traceback.print_exc()
+    return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
+    print(f"Starting server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
