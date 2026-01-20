@@ -1,0 +1,16 @@
+# .gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.so
+*.pickle
+*.p
+model.p
+data.pickle
+data/
+.DS_Store
+*.log

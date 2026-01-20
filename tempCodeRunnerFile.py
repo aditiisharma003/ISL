@@ -1,0 +1,2 @@
+@app.route('/')
+def index():

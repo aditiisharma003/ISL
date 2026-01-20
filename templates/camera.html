@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Recognition - Camera</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body and Background Styles */
+        body {
+            font-family: 'Lora', serif;
+            background-color: #fff;
+            color: #34495e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0; 
+        }
+
+        /* Header Styling */
+        header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 50px;
+            background-color: white;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        header .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        header .logo-img {
+            width: 40px; 
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        header .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: bold;
+            color: #34495e;
+            text-transform: uppercase;
+        }
+
+        header nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        header nav a {
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            color: #34495e;
+            font-size: 16px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        header nav a:hover {
+            color: #2980b9;
+        }
+
+        /* Content Container Styling */
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 40px;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Camera Feed Styling */
+        #videoElement {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Button Styling */
+        button {
+            background-color: #2980b9;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            margin-top: 40px;
+            margin-bottom: 20px; 
+        }
+
+        button:hover {
+            background-color: #6dd5fa; 
+            transform: translateY(-3px);
+        }
+
+        button:active {
+            background-color: #2980b9; 
+        }
+
+        /* Footer Styling */
+        footer {
+            width: 100%;
+            background-color: white;
+            padding: 25px 50px;
+            text-align: center;
+            color: #34495e;
+            font-family: 'Lora', serif;
+            font-size: 16px;
+            box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.1); 
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="static/icon.png" alt="Logo" class="logo-img">
+            <div class="logo">Indian Sign Language Recognizer</div>
+        </div>
+        <nav>
+            <a href="/">Home</a>
+            <a href="https://indiansignlanguage.org/" target="_blank">Learn ISL</a>
+            <a href="https://www.nidcd.nih.gov/health/american-sign-language" target="_blank">American Sign Language</a>
+            <a href="https://www.handspeak.com/" target="_blank">Learn Sign Language Basics</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <img id="videoElement" src="{{ url_for('video_feed') }}" alt="Camera Feed" />
+    </div>
+
+    <button onclick="window.location.href='/'">Go Back</button>
+
+    <footer>
+        <p>&copy; 2024 Sign Language Recognition App. All rights reserved.</p>
+    </footer>
+</body>
+</html>
